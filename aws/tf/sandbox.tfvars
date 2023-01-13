@@ -17,10 +17,10 @@ cert_manager_namespace = "cert-manager"
 csi_namespace = "kube-system"
 enable_ebs_csi = true
 ebs_csi_role_name = "zbi-ebs-csi"
-ebs_csi_serviceaccount = "zbi-ebs-csi-sa"
+ebs_csi_serviceaccount = "ebs-csi-controller-sa"
 enable_efs_csi = false
 efs_csi_role_name = "zbi-efs-csi"
-efs_csi_serviceaccount = "zbi-efs-csi-sa"
+efs_csi_serviceaccount = "efs-csi-controller-sa"
 
 eks_cluster_version = "1.23"
 eks_root_volume_type = "gp2"

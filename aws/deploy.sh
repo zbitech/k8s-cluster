@@ -53,7 +53,9 @@ elif [[ ${action} == "create" ]]; then
   terraform apply -var-file=${environment}.tfvars -var region=${AWS_REGION} -var environment=${environment} -input=false --auto-approve && \
   terraform output > output.env
 
-  aws eks update-kubeconfig --name zbi-sandbox --kubeconfig ${CURR_DIR}/kubeconfig --verbose && \
+#  eksctl create cluster -f eks_cluster.yaml
+
+  aws eks update-kubeconfig --name zbi-sandbox --kubeconfig ${CURR_DIR}/kubeconfig --verbose
 
 elif [[ ${action} == "remove" ]]; then
   echo "deleting cluster"
