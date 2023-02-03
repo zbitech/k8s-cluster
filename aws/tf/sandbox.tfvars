@@ -20,6 +20,7 @@ ebs_csi_role_name = "zbi-ebs-csi"
 ebs_csi_serviceaccount = "ebs-csi-controller-sa"
 enable_efs_csi = false
 efs_csi_role_name = "zbi-efs-csi"
+
 efs_csi_serviceaccount = "efs-csi-controller-sa"
 
 eks_cluster_version = "1.23"
