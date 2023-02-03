@@ -39,27 +39,33 @@ cd "$( dirname -- "$SCRIPT_PATH"; )" > '/dev/null';
 
 echo ${SCRIPT_PATH}
 
-if [[ ${action} == "verify" ]]; then
-  echo "verifying cluster config"
+if [[ ${action} == "init" ]]; then
+  echo "initializing terraform"
   cd tf
   terraform init
+
+elif [[ ${action} == "format" ]]; then
+  echo "verifying canonical format"
+  cd tf
+  terraform fmt -check
+
+elif [[ ${action} == "verify" ]]; then
+  echo "verifying cluster config"
+  cd tf
   terraform plan -var-file=${environment}.tfvars -var region=${AWS_REGION} -var environment=${environment} -input=false
 
 elif [[ ${action} == "create" ]]; then
   echo "creating cluster"
 
   cd tf
-  terraform init
   terraform apply -var-file=${environment}.tfvars -var region=${AWS_REGION} -var environment=${environment} -input=false --auto-approve && \
-  terraform output > output.env
-
-#  eksctl create cluster -f eks_cluster.yaml
+#  terraform output > output.env
 
   aws eks update-kubeconfig --name zbi-sandbox --kubeconfig ${CURR_DIR}/kubeconfig --verbose
 
 elif [[ ${action} == "remove" ]]; then
   echo "deleting cluster"
-#  eksctl delete cluster -f eks_cluster.yaml
+
   cd tf
   terraform destroy -var-file=${environment}.tfvars -var region=${AWS_REGION} -var environment=${environment} -input=false --auto-approve
 

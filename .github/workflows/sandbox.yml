@@ -1,0 +1,50 @@
+name: 'Terraform'
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+    environment: sandbox
+
+    # Use the Bash shell
+    defaults:
+      run:
+        shell: Bash
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials for Sandbox
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        role-to-assume: arn:aws:sts::169178127784:assumed-role/OrganizationAccountAccessRole
+        aws-region: us-east-1
+
+    # Install the latest version of Terraform CLI
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+
+    # Initialize a new or existing Terrform working directory
+    - name: Terraform init
+      run: ./aws/deploy.sh --action init
+
+    # Checks that all Terraform configuration files adhere to a canonical format
+    - name: Terraform Format
+      run: ./aws/deploy.sh --action format
+
+    # Verify execution plan
+    - name: Terraform Plan
+      run: ./aws/deploy.sh --action verify --environment sandbox
+
+    - name: Deployment
+      if: github.ref == 'refs/heads/"main"' && github.event_name == 'push'
+      run: ./aws/deploy.sh --action create --environment sandbox
