@@ -1,7 +1,7 @@
 name: 'Terraform'
 
 on:
-  push:
+  workflow_dispatch:
     branches: [ "main" ]
   pull_request:
 
@@ -45,6 +45,9 @@ jobs:
     - name: Terraform Plan
       run: ./aws/deploy.sh --action verify --environment sandbox
 
-    - name: Deployment
+    - name: Create infrastructure
       if: github.ref == 'refs/heads/"main"' && github.event_name == 'push'
       run: ./aws/deploy.sh --action create --environment sandbox
+
+    - name: Deploy Charts
+      run: echo "Hello World"
