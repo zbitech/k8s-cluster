@@ -30,7 +30,6 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
         role-to-assume: arn:aws:iam::169178127784:role/OrganizationAccountAccessRole
-        role-session-name: zbi-infra
 
     # Install the latest version of Terraform CLI
     - name: Setup Terraform
