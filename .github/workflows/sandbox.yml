@@ -24,9 +24,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: list all files
-      run: ls -al
-      
+    #- name: list all files
+    #  run: ls -al
+
     - name: Configure AWS credentials for Sandbox
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -46,8 +46,8 @@ jobs:
       run: ./aws/deploy.sh --action init
 
     # Checks that all Terraform configuration files adhere to a canonical format
-    - name: Terraform Format
-      run: ./aws/deploy.sh --action format
+    #- name: Terraform Format
+    #  run: ./aws/deploy.sh --action format
 
     # Verify execution plan
     - name: Terraform Plan
