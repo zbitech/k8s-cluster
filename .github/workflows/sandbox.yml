@@ -18,12 +18,15 @@ jobs:
     # Use the Bash shell
     defaults:
       run:
-        shell: Bash
+        shell: bash
 
     steps:
     - name: Checkout
       uses: actions/checkout@v3
 
+    - name: list all files
+      run: ls -al
+      
     - name: Configure AWS credentials for Sandbox
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -41,23 +44,18 @@ jobs:
     # Initialize a new or existing Terrform working directory
     - name: Terraform init
       run: ./aws/deploy.sh --action init
-      shell: bash
 
     # Checks that all Terraform configuration files adhere to a canonical format
     - name: Terraform Format
       run: ./aws/deploy.sh --action format
-      shell: bash
 
     # Verify execution plan
     - name: Terraform Plan
       run: ./aws/deploy.sh --action verify --environment sandbox
-      shell: bash
 
     - name: Create infrastructure
       if: github.ref == 'refs/heads/"main"' && github.event_name == 'push'
       run: ./aws/deploy.sh --action create --environment sandbox
-      shell: bash
 
     - name: Deploy Charts
       run: echo "Hello World"
-      shell: bash
