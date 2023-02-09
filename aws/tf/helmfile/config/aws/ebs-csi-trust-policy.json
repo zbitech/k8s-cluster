@@ -1,0 +1,15 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Action": "sts:AssumeRoleWithWebIdentity",
+    "Effect": "Allow",
+    "Principal": {
+      "Federated": "arn:aws:iam::ACCOUNT_ID:oidc-provider/oidc.eks.REGION.amazonaws.com/id/EKS_HASH_ID"
+    },
+    "Condition": {
+      "StringEquals": {
+        "oidc.eks.REGION.amazonaws.com/id/EKS_HASH_ID:sub": "system:serviceaccount:EBS_CSI_NAMESPACE:EBS_CSI_ROLE"
+      }
+    }
+  }]
+}

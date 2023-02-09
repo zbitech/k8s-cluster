@@ -1,0 +1,408 @@
+helm:
+  velero:
+    enabled: false
+
+  stakater:
+    enabled: true
+
+  certificates:
+    enabled: true
+
+  certManager:
+    enabled: true
+
+  csi:
+    enabled: true
+
+  contour:
+    enabled: true
+
+  monitoring:
+    enabled: true
+    loki:
+      enabled: false
+    prometheus:
+      enabled: false
+    grafana:
+      enabled: false
+    datadog:
+      enabled: false
+
+  mongodb:
+    enabled: true
+
+  externalDNS:
+    enabled: true
+
+
+velero:
+  configuration:
+    provider:
+
+certs:
+  issuer:
+    create: true
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: alphegasolutions@gmail.com
+    secretKeyRef: zbi-acme-key
+
+  installCRDs: true
+
+csi:
+  provider: hostpath
+  namespace: kube-system
+  snapshotterVersion: release-5.0
+
+contour:
+  envoy:
+    service:
+      annotations: {}
+
+  configInline:
+    disablePermitInsecure: false
+    tls:
+      fallback-certificate: { }
+    accesslog-format: envoy
+    enableExternalNameService: true
+    debug: true
+    timeouts:
+      stream-idle-timeout: 30s
+
+
+#mongodb:
+#  architecture: standalone
+#  useStatefulSet: true
+#  updateStrategy:
+#    type: RollingUpdate
+#  image:
+#    repository: ghcr.io/zcube/bitnami-compat/mongodb
+#    tag: 6.0.2-debian-11-r30
+#  auth:
+#    enabled: false
+#  persistence:
+#    enabled: true
+#    accessModes: ["ReadWriteOnce"]
+#    mountPath: /var/lib/mongodb/data
+#  volumePermissions:
+#    enabled: true
+#  metrics:
+#    enabled: true
+#  tls:
+#    enabled: false
+#  initdbScripts:
+#    init-zbi.js: |-
+#
+#      const zbiDb = db.getSiblingDB("zbiRepo");
+#      const collections = zbiDb.ListCollectionNames().ToList();
+#
+#      var zbi = {"features": {"authentication": "local"}};
+#
+#      let res = [
+#          if(!collections.Contains("users")) {
+#            zbiDb.createCollection("users"),
+#            zbiDb.users.createIndex({ "userid": 1, "email": 1 }, { unique: true }),
+#          }
+#
+#          if(!collections.Contains("user_policy")) {
+#            zbiDb.createCollection("user_policy"),
+#            zbiDb.user_policy.createIndex({ "userid": 1 }, { unique: true }),
+#          }
+#
+#          if(!collections.Contains("api_keys")) {
+#            zbiDb.createCollection("apikeys"),
+#            zbiDb.apikeys.createIndex({ "key": 1, "userid": 1 }, { unique: true }),
+#          }
+#
+#          if(!collections.Contains("apikey_policy")) {
+#            zbiDb.createCollection("apikey_policy"),
+#            zbiDb.apikey_policy.createIndex({ "key": 1}, { unique: true }),
+#          }
+#
+#          if(!collections.Contains("teams")) {
+#            zbiDb.createCollection("teams"),
+#            zbiDb.teams.createIndex({ "teamid": 1, "owner": 1 }, { unique: true }),
+#          }
+#
+#          if(!collections.Contains("team_members")) {
+#            zbiDb.createCollection("team_members"),
+#            zbiDb.team_members.createIndex({ "teamid": 1, "email": 1, "key": 1}, { unique: true }),
+#          }
+#
+#          if(!collections.Contains("projects")) {
+#            zbiDb.createCollection("projects"),
+#            zbiDb.projects.createIndex({ "name": 1, "owner": 1, "team": 1}, { unique: true }),
+#          }
+#
+#          if(!collections.Contains("instances")) {
+#            zbiDb.createCollection("instances"),
+#            zbiDb.instances.createIndex({ "project": 1, "name": 1, "type": 1, "owner": 1}, { unique: true }),
+#          }
+#
+#          if(!collections.Contains("project_events")) {
+#            zbiDb.createCollection("project_events"),
+#            zbiDb.project_events.createIndex({ "project": 1, "action": 1, "timestamp": 1, "actor": 1}, { unique: false }),
+#          }
+#
+#          if(!collections.Contains("instance_events")) {
+#            zbiDb.createCollection("instance_events"),
+#            zbiDb.instance_events.createIndex({ "project": 1, "instance": 1, "action": 1, "timestamp": 1, "actor": 1}, { unique: false }),
+#          }
+#
+#          if(!collections.Contains("profile_events")) {
+#            zbiDb.createCollection("profile_events"),
+#            zbiDb.profile_events.createIndex({ "userid": 1, "action": 1, "timestamp": 1, "actor": 1}, { unique: false }),
+#          }
+#
+#          if(!collections.Contains("team_events")) {
+#            zbiDb.createCollection("team_events"),
+#            zbiDb.team_events.createIndex({ "teamid": 1, "action": 1, "timestamp": 1, "actor": 1}, { unique: false }),
+#          }
+#
+#          if(!collections.Contains("kubernetes_resources")) {
+#            zbiDb.createCollection("kubernetes_resources"),
+#            zbiDb.kubernetes_resources.createIndex({ "key": 1}, { unique: true }),
+#          }
+#
+#          if(!collections.Contains("project_resources")) {
+#            zbiDb.createCollection("project_resources"),
+#            zbiDb.project_resources.createIndex({ "project": 1, "type": 1, "name": 1}, { unique: true }),
+#          }
+#
+#          if(!collections.Contains("instance_resources")) {
+#            zbiDb.createCollection("instance_resources"),
+#            zbiDb.instance_resources.createIndex({ "project": 1, "instance": 1, "type": 1, "name": 1}, { unique: true }),
+#          }
+#
+#          if(!collections.Contains("snapshots")) {
+#            zbiDb.createCollection("snapshots"),
+#            zbiDb.snapshots.createIndex({"name": 1, "snapshottype": 1, "project": 1, "instance": 1}, {unique: true}),
+#          }
+#
+#          if(!collections.Contains("instance_policy")) {
+#            zbiDb.createCollection("instance_policy"),
+#            zbiDb.instance_policy.createIndex({ "project": 1, "instance": 1 }, { unique: true }),
+#          }
+#
+#          if(!collections.Contains("invitations")) {
+#            zbiDb.createCollection("invitations"),
+#            zbiDb.invitations.createIndex({"key": 1, "email": 1, "created": 1}, {unique: true})
+#          }
+#      ];
+#
+#      if(!collections.Containers("passwords") && zbi.features.authentication == "local") {
+#        res.push(zbiDb.createCollection("passwords"), zbiDb.passwords.createIndex({"userid": 1}, {unique: true}));
+#      }
+#
+#      printjson(res);
+#      print(zbiDb.getCollectionNames());
+
+database:
+  connectionString: ""
+
+  newRepo:
+    enabled: true
+    namespace: mongodb
+    version: "5.0.5"
+    architecture: ReplicaSet
+    members: 1
+    tls:
+      enabled: false
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    persistence:
+      storageClassName: "csi-sc"
+      storageSize: 10Gi
+
+  initRepo:
+    enabled: true
+    image: rtsp/mongosh:latest
+    imagePullPolicy: IfNotPresent
+
+  adminUI:
+    enabled: true
+    domain: db.zbitech.local
+    port: 8081
+    user: admin
+
+controlplane:
+  controller:
+    adminEmail: alphegasolutions@gmail.com
+    adminUser: admin
+    controllerLogLevel: 0
+    ingress:
+      enabled: true
+      annotations: {}
+      controller:
+        host: apps.zbitech.local
+        tls:
+          secretName: zbi-apps-tls
+      endpoint:
+        host: api.zbitech.local
+        tls:
+          secretName: zbi-api-tls
+    image:
+      repository: jakinyele/zbi-controller
+      pullPolicy: Never
+      # Overrides the image tag whose default is the chart appVersion.
+      tag: "v0.0.0"
+    database:
+#      url: "mongodb://$(DATABASE_USERNAME):$(DATABASE_PASSWORD)@mongodb.mongodb:27017/zbiRepo"
+      url: "mongodb://$(DATABASE_USERNAME):$(DATABASE_PASSWORD)@mongodb-0.mongodb-headless.mongodb.svc.cluster.local:27017,mongodb-1.mongodb-headless.mongodb.svc.cluster.local:27017/?authSource=admin&replicaSet=rs0"
+      type: mongo
+      zbi_password: ""
+    features:
+      emailServiceEnabled: true
+      registrationInviteEnabled: true
+      createAdminUser: true
+      accessAuthorizationEnabled: true
+      teamsEnabled: true
+      apiKeysEnabled: true
+    kubernetes:
+      informer:
+        requeueLimit: 5
+        requeueDelay: 10
+        Informers:
+        - Deployment
+        - PersistentVolume
+        - PersistentVolumeClaims
+        - VolumeSnapshot
+        - SnapshotSchedule
+        - HTTPProxy
+        - ConfigMap
+        - Secret
+        - Service
+    repository:
+      database:
+        factory: mongo
+        name: zbiRepo
+      authentication:
+        type: iam
+      jwtConfig:
+        secretKey: KaPdSgVkYp3s6v9y$B&E)H@McQeThWmZ
+    mailer:
+      host: smtp.mailtrap.io
+      port: 25
+      username: 4106ca6308c1ff
+      password: 5f50d357506659
+      sender: Zcash Blockchain Infrastructure
+    policy:
+      imageRegistries: ["docker.io", "jakinyele", "169178127784.dkr.ecr.us-east-1.amazonaws.com"]
+      tokenExpirationPolicy: 720
+      storageClass: csi-sc
+      snapshotClass: csi-snapclass
+      networkTypes: [testnet]
+      instanceTypes: [zcash, lwd]
+      maxBackupCount: 5
+      backupExpiration: 168h
+      roles: [owner, user]
+      levels: [bronze, team_member]
+      snapshotTypes: [snapshot, schedule]
+      scheduleTypes: [daily, weekly, monthly]
+      endpointAccessTypes: [private, public, selected]
+      subscriptionPolicies:
+      - level: bronze
+        maxKeys: 1
+        maxProjects: 1
+        maxInstances: 5
+        maxTeams: 1
+        maxAPIKeys: 1
+        maxVolumeClaims: 5
+        networkTypes: [testnet]
+        instanceTypes: [zcash, lwd]
+        resourceLimit:
+          maxStorage: 75Gi
+          maxCPU: 30
+          maxMemory: 20Gi
+
+externalDNS:
+  provider: "aws"
+
+grafana:
+  grafana.ini:
+    log:
+      mode: console
+      level: Debug
+#    server:
+#      domain:
+#        root_url: https://monitor.zbitech.local
+#        serve_from_sub_path: true
+  persistence:
+    enabled: true
+  adminPassword: "password"
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: contour
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: "certs-issuer"
+    tls:
+      - secretName: zbi-grafana-tls
+        hosts:
+          - monitor.zbitech.local
+    hosts:
+      - monitor.zbitech.local
+    path: /
+    pathType: Prefix
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - name: prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-server.monitoring.svc.cluster.local:3100
+        isDefault: true
+      - name: loki
+        type: loki
+        access: proxy
+        url: http://loki.monitoring.svc.cluster.local
+  defaultDashboardsEnabled: true
+  plugins:
+    - grafana-piechart-panel
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: default
+        orgId: 1
+        folder:
+        type: file
+        disableDeletion: true
+        editable: false
+        options:
+          path: /var/lib/grafana/dashboards/default
+  dashboards:
+    default:
+      kubernetes-cluster:
+        gnetId: 7249
+        datasource: prometheus
+      kubernetes-cluster-monitoring-prometheus:
+        gnetId: 1621
+        datasource: prometheus
+      mongo-db:
+        gnetId: 2583
+        datasource: prometheus
+      namespace:
+        gnetId: 9809
+      pod:
+        gnetId: 11594
+        datasource: prometheus
+      network:
+        gnetId: 12619
+        datasource: prometheus
+      pod-cpu-memory:
+        gnetId: 15055
+        datasource: prometheus
+      contour:
+        gnetId: 11023
+        datasource: prometheus
+      persistent-volumes:
+        gnetId: 13646
+        datasource: prometheus
+
+#  GzzXbF5K4P63YVC

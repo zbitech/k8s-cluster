@@ -1,0 +1,278 @@
+repositories:
+  - name: aws-ebs-csi-driver
+    url: https://kubernetes-sigs.github.io/aws-ebs-csi-driver
+  - name: backube
+    url: https://backube.github.io/helm-charts/
+  - name: bitnami
+    url: https://charts.bitnami.com/bitnami
+  - name: jetstack
+    url: https://charts.jetstack.io
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+  - name: stakater
+    url: https://stakater.github.io/stakater-charts
+  - name: mongodb
+    url: https://mongodb.github.io/helm-charts
+  - name: vmware-tanzu
+    url: https://vmware-tanzu.github.io/helm-charts
+
+releases:
+  # - needs to define s3 bucket
+  # - name: velero
+  #   chart: vmware-tanzu/velero
+  #   version: v2.32.1
+  #   namespace: velero
+
+  - name: stakater
+    chart: stakater/reloader
+    version: v0.0.118
+
+  - name: external-dns
+    chart: bitnami/external-dns
+    namespace: external-dns
+    values:
+      - provider: "aws"
+      - aws:
+          region: {{requiredEnv "AWS_REGION"}}
+          roleArn: {{requiredEnv "DNS_MANAGER_ROLE"}}
+          assumeRoleArn: {{requiredEnv "CERT_MANAGER_ROLE"}}
+          preferCNAME: true
+          evaluateTargetHealth: true
+
+  - name: certs
+    chart: ./charts/certs
+    namespace: zbi
+    values:
+    - issuer:
+        create: true
+        type: server
+        name: zbi-issuer
+        server: https://acme-staging-v02.api.letsencrypt.org/directory
+        email: admin@alphegasolutions.com
+        secretKeyRef: zbi-acme-key
+        solvers:
+        - selector:
+            dnsZones: [{{requiredEnv "DOMAIN_NAME"}}]
+          dns01:
+            route53:
+              region: {{requiredEnv "AWS_REGION"}}
+              hostedZoneID: {{requiredEnv "ROUTE53_HOSTED_ZONE"}}
+              role: {{requiredEnv "DNS_MANAGER_ROLE"}}
+
+    # - certificates:
+    #   - host: apps-dev.zbitech.io
+    #     name: controller
+    #     tls:
+    #       enabled: true
+    #       secretName: zbi-apps-tls
+    #   - host: api-dev.zbitech.io
+    #     name: endpoint
+    #     tls:
+    #       enabled: true
+    #       secretName: zbi-api-tls
+    #   - host: www-dev.zbitech.io
+    #     name: dashboard
+    #     tls:
+    #       enabled: true
+    #       secretName: zbi-www-tls
+
+    needs:
+    - cert-manager/cert-manager
+    - contour/contour
+
+  - name: cert-manager
+    chart: jetstack/cert-manager
+    namespace: cert-manager
+    version: v1.9.1
+    values:
+    - installCRDs: true
+    - serviceAccount:
+        annotations:
+          "eks.amazonaws.com/role-arn": {{requiredEnv "CERT_MANAGER_ROLE"}}
+
+  - name: contour
+    chart: bitnami/contour
+    namespace: contour
+    version: 9.1.0
+    values:
+    - envoy:
+        service:
+          annotations:
+            "service.beta.kubernetes.io/aws-load-balancer-type": "nlb"
+
+    - configInline:
+        disablePermitInsecure: false
+        tls:
+          fallback-certificate: { }
+        accesslog-format: envoy
+        enableExternalNameService: true
+        debug: true
+        timeouts:
+          stream-idle-timeout: 30s
+
+  - name: snapscheduler
+    chart: backube/snapscheduler
+    namespace: snapscheduler
+
+  - name: database
+    chart: ./charts/zbi-db
+    namespace: mongodb
+    values:
+    - namespace: mongodb
+    - version: "5.0.5"
+    - architecture: ReplicaSet
+    - members: 1
+    - tls:
+        enabled: true
+    - resources:
+        limits:
+          cpu: "1"
+          memory: 2Gi
+        requests:
+          cpu: 500m
+          memory: 1Gi
+    - persistence:
+        storageClassName: "csi-sc"
+        storageSize: 10Gi
+
+    # - database:
+    #     lookup:
+    #       enabled: true
+    #       namespace: mongodb
+    #       secretKeyRef: mongo-admin-zbi
+    #       tls:
+    #         enabled: false
+    #     connectionString: ""
+
+    # - initRepo:
+    #     enabled: true
+    #     #image: rtsp/mongosh:latest
+    #     imagePullPolicy: IfNotPresent
+
+    # - adminUI:
+    #     enabled: true
+    #     domain: {{requiredEnv "DB_ADMIN_URL"}}
+    #     port: 8081
+    #     user: admin
+    needs:
+    - community-operator
+    - contour/contour
+    - zbi/certs
+    hooks:
+    - events: ["postsync"]
+      showlogs: true
+      command: "./scripts/mongo-init-check.sh"
+
+
+  - name: community-operator
+    chart: mongodb/community-operator
+    namespace: mongodb
+    needs:
+    - contour/contour
+    hooks:
+    - events: ["postsync"]
+      showlogs: true
+      command: "./scripts/mongo-operator-check.sh"
+    values:
+
+  - name: loki
+    chart: grafana/loki-stack
+    namespace: monitoring
+    values:
+    - loki:
+        serviceName: loki
+
+  - name: prometheus
+    chart: prometheus-community/prometheus
+    namespace: monitoring
+
+  # create post script for ingress or use helm chart ingress
+  - name: grafana
+    chart: grafana/grafana
+    namespace: monitoring
+    needs:
+    - contour/contour
+    values:
+      - grafana.ini:
+          log:
+            mode: console
+            level: Debug
+          server:
+            domain:
+              root_url: https://{{requiredEnv "GRAFANA_URL"}}
+              serve_from_sub_path: true
+      - persistence:
+          enabled: true
+      - adminPassword: "password"
+      - ingress:
+          enabled: true
+          annotations:
+            kubernetes.io/ingress.class: contour
+            kubernetes.io/tls-acme: "true"
+            cert-manager.io/cluster-issuer: "zbi-issuer"
+          tls:
+          - secretName: zbi-grafana-tls
+            hosts:
+            - {{requiredEnv "GRAFANA_URL"}}
+          hosts:
+          - {{requiredEnv "GRAFANA_URL"}}
+          path: /
+          pathType: Prefix
+      - datasources:
+          datasources.yaml:
+            apiVersion: 1
+            datasources:
+            - name: prometheus
+              type: prometheus
+              access: proxy
+              url: http://prometheus-server.monitoring.svc.cluster.local:3100
+              isDefault: true
+            - name: loki
+              type: loki
+              access: proxy
+              url: http://loki.monitoring.svc.cluster.local
+      - defaultDashboardsEnabled: true
+      - plugins:
+        - grafana-piechart-panel
+      - dashboardProviders:
+          dashboardproviders.yaml:
+            apiVersion: 1
+            providers:
+            - name: default
+              orgId: 1
+              folder:
+              type: file
+              disableDeletion: true
+              editable: false
+              options:
+                path: /var/lib/grafana/dashboards/default
+      - dashboards:
+          default:
+            kubernetes-cluster:
+              gnetId: 7249
+              datasource: prometheus
+            kubernetes-cluster-monitoring-prometheus:
+              gnetId: 1621
+              datasource: prometheus
+            mongo-db:
+              gnetId: 2583
+              datasource: prometheus
+            namespace:
+              gnetId: 9809
+            pod:
+              gnetId: 11594
+              datasource: prometheus
+            network:
+              gnetId: 12619
+              datasource: prometheus
+            pod-cpu-memory:
+              gnetId: 15055
+              datasource: prometheus
+            contour:
+              gnetId: 11023
+              datasource: prometheus
+            persistent-volumes:
+              gnetId: 13646
+              datasource: prometheus

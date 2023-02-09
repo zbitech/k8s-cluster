@@ -1,0 +1,23 @@
+
+issuer:
+  create: true
+  type: {{ .Values | get "certsIssuerType"}}
+  server: {{.Values.certs.acmeDriverURL}}
+  email: {{.Values.certs.issuerEmail}}
+  secretKeyRef: zbi-acme-key
+  solvers:
+    - selector:
+        dnsZones: ["{{.Values.certs.domain}}"]
+      dns01: {{.Values.certs.issuer.dns01 }}
+
+certificates:
+  - host: apps{{.Values.certs.suffix}}.{{.Values.certs.domain}}
+    name: controller
+    tls:
+      enabled: true
+      secretName: zbi-apps-tls
+  - host: api{{.Values.certs.suffix}}.{{.Values.certs.domain}}
+    name: endpoint
+    tls:
+      enabled: true
+      secretName: zbi-api-tls

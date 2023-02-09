@@ -1,0 +1,8 @@
+apiVersion: v2
+name: csi-driver
+description: A Helm chart for hospath csi driver
+type: application
+version: 0.1.0
+maintainers:
+  - name: John Akinyele
+

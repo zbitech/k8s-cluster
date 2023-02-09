@@ -1,0 +1,27 @@
+{{- $fullname := include "certs.fullname" .}}
+{{- range $cert := .Values.certificates}}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $fullname }}-{{$cert.name}}
+spec:
+  commonName: "{{ $cert.host}}"
+  dnsNames: ["{{$cert.host}}"]
+  duration: 8760h
+  renewBefore: 730h
+  issuerRef:
+    kind: ClusterIssuer
+    name: {{ .Values.issuer.name }}
+  secretName: {{ $cert.tls.secretName}}
+---
+apiVersion: projectcontour.io/v1
+kind: TLSCertificateDelegation
+metadata:
+  name: {{$fullname}}-{{$cert.name}}-del
+spec:
+  delegations:
+    - secretName: {{ $cert.tls.secretName}}
+      targetNamespaces:
+        - '*'
+---
+{{- end }}

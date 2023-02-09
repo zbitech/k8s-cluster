@@ -1,0 +1,17 @@
+
+nameOverride: ""
+fullnameOverride: ""
+
+issuer:
+  create: true
+  name: zbi-issuer
+  type: self-signed
+  server: http://acme-server
+  email: admin@email.com
+  secretKeyRef: secret-key
+  solvers:
+    - selector: {}
+      dnsZones: []
+      dns01: {}
+
+certificates: []

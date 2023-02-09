@@ -1,0 +1,23 @@
+
+
+certs:
+  issuer:
+    type: server
+
+  domain: zbitech.local
+
+issuer:
+  create: true
+  #type: selfsigned
+  type: server
+  server: {{.Environment.Values.certs.acmeDriverURL}}
+  email: {{.Environment.Values.certs.issuerEmail}}
+  secretKeyRef: acme-dev-key
+  solvers:
+    - selector:
+        dnsZones: ["{{.Environment.Values.certs.domain}}"]
+      dns01:
+        route53:
+          region: us-east-1
+          hostedZoneID: Z003887936ML6VHG2MGIT
+          role: arn:aws:service::662737177474:role/dns-manager

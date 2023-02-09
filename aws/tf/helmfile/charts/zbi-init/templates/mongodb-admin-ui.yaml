@@ -1,0 +1,80 @@
+{{- if .Values.adminUI.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-express
+  labels:
+    app: mongo-express
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo-express
+  template:
+    metadata:
+      labels:
+        app: mongo-express
+    spec:
+      containers:
+        - name: mongo-express
+          image: mongo-express
+          ports:
+            - containerPort: {{.Values.adminUI.port}}
+          env:
+            - name: ME_CONFIG_MONGODB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "db.SecretName" .}}
+                  key: {{ include "db.ConnectionStringName" . }}
+            - name: ME_CONFIG_MONGODB_ENABLE_ADMIN
+              value: "true"
+            - name: ME_CONFIG_BASICAUTH_USERNAME
+              value: "{{.Values.adminUI.user}}"
+            - name: ME_CONFIG_BASICAUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-ui-password
+                  key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-express-svc
+spec:
+  selector:
+    app: mongo-express
+  ports:
+    - protocol: TCP
+      port: {{.Values.adminUI.port}}
+      targetPort: {{.Values.adminUI.port}}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: certs-db
+spec:
+  commonName: "{{.Values.adminUI.domain }}"
+  dnsNames: ["{{.Values.adminUI.domain}}"]
+  duration: 8760h
+  renewBefore: 730h
+  issuerRef:
+    kind: ClusterIssuer
+    name: cert-issuer
+  secretName: certs-db-tls
+---
+apiVersion: projectcontour.io/v1
+kind: HTTPProxy
+metadata:
+  name: mongo-express-ingress
+spec:
+  virtualhost:
+    fqdn: {{.Values.adminUI.domain}}
+    tls:
+      secretName: certs-db-tls
+  routes:
+    - conditions:
+        - prefix: /
+      services:
+        - name: mongo-express-svc
+          port: {{.Values.adminUI.port}}
+{{- end}}

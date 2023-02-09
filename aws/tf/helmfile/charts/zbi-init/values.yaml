@@ -1,0 +1,23 @@
+
+nameOverride: ""
+fullnameOverride: ""
+
+database:
+  lookup:
+    enabled: true
+    namespace: mongodb
+    secretKeyRef: mongo-admin-zbi
+    tls:
+      enabled: false
+  connectionString: ""
+
+initRepo:
+  enabled: true
+  image: rtsp/mongosh:latest
+  imagePullPolicy: IfNotPresent
+
+adminUI:
+  enabled: true
+  domain: db.zbitech.local
+  port: 8081
+  user: admin

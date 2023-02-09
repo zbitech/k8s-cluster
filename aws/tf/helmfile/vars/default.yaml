@@ -1,0 +1,29 @@
+
+helm:
+
+  stakater:
+    enabled: false
+
+  certificates:
+    enabled: false
+
+  certManager:
+    enabled: true
+
+  csi:
+    enabled: false
+
+  contour:
+    enabled: true
+
+  monitoring:
+    enabled: false
+    loki:
+      enabled: false
+    prometheus:
+      enabled: false
+    grafana:
+      enabled: false
+
+  mongodb:
+    enabled: false

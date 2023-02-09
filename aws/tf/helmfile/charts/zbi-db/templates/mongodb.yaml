@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: admin-password
+data:
+
+  {{- $adminSecretObj := (lookup "v1" "Secret" .Values.namespace "admin-password") | default dict }}
+  {{- $adminSecretData := (get $adminSecretObj "data") | default dict }}
+  {{- $adminPassword := (get $adminSecretData "password") | default (randAlphaNum 16 | b64enc) }}
+
+  password: {{$adminPassword}}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: zbi-password
+data:
+  {{- $zbiSecretObj := (lookup "v1" "Secret" .Values.namespace "zbi-password") | default dict }}
+  {{- $zbiSecretData := (get $zbiSecretObj "data") | default dict }}
+  {{- $zbiPassword := (get $zbiSecretData "password") | default (randAlphaNum 16 | b64enc) }}
+
+  password: {{$zbiPassword}}
+---
+apiVersion: mongodbcommunity.mongodb.com/v1
+kind: MongoDBCommunity
+metadata:
+  name: mongo
+spec:
+  members: {{.Values.members}}
+  type: {{.Values.architecture}}
+  version: {{.Values.version}}
+  security:
+    authentication:
+      modes: ["SCRAM"]
+  users:
+    - name: admin
+      db: admin
+      passwordSecretRef:
+        name: admin-password
+      roles:
+        - name: clusterAdmin
+          db: admin
+        - name: userAdminAnyDatabase
+          db: admin
+        - name: readWriteAnyDatabase
+          db: admin
+        - name: dbAdminAnyDatabase
+          db: admin
+      scramCredentialsSecretName: admin-scram
+    - name: zbi
+      db: admin
+      passwordSecretRef:
+        name: zbi-password
+      roles:
+        - name: readWrite
+          db: zbiRepo
+      scramCredentialsSecretName: zbi-scram
+  additionalMongodConfig:
+    storage.wiredTiger.engineConfig.journalCompressor: zlib
+  statefulSet:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: mongod
+              resources:
+                limits:
+                  cpu: {{.Values.resources.limits.cpu}}
+                  memory: {{.Values.resources.limits.memory}}
+                requests:
+                  cpu: {{.Values.resources.requests.cpu}}
+                  memory: {{.Values.resources.requests.memory}}
+              affinity:
+                podAntiAffinity:
+                  requireDuringSchedulingIgnoredDuringExecution:
+                    - labelSelector:
+                        matchExpressions:
+                          - key: app
+                            operator: In
+                            values:
+                              - zbi-mongodb
+                      topologyKey: "kubernetes.io/hostname"
+      volumeClaimTemplates:
+        - metadata:
+            name: data-volume
+            spec:
+              accessModes:
+                - ReadWriteOnce
+              storageClassName: {{.Values.persistence.storageClassName}}
+              resources:
+                requests:
+                  storage: {{.Values.persistence.storageSize}}
+

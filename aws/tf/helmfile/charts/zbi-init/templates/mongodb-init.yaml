@@ -1,0 +1,43 @@
+{{- if .Values.initRepo.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongodb-scripts
+data:
+{{ tpl (.Files.Glob "conf/zbi-init.js").AsConfig . | indent 2 }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: zbi-repo-init
+spec:
+  template:
+    metadata:
+      name: zbi-repo-init
+      labels:
+        jobgroup: mongosh
+    spec:
+      containers:
+        - name: mongosh
+          image: {{.Values.initRepo.image}}
+          imagePullPolicy: {{.Values.initRepo.imagePullPolicy}}
+          env:
+            - name: connectionString
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "db.SecretName" .}}
+                  key: {{ include "db.ConnectionStringName" . }}
+          command: ["mongosh"]
+          args: ["$(connectionString)", "/etc/zbi/config/zbi-init.js"]
+          volumeMounts:
+            - name: mongodb-scripts
+              mountPath: /etc/zbi/config
+      restartPolicy: OnFailure
+      volumes:
+        - name: mongodb-scripts
+          configMap:
+            name: mongodb-scripts
+            items:
+              - key: zbi-init.js
+                path: zbi-init.js
+{{- end}}

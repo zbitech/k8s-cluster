@@ -1,0 +1,11 @@
+{{- if .Values.initRepo.enabled}}
+- Database initialized
+{{- end}}
+
+{{- if .Values.adminUI.enabled -}}
+- Get admin password
+
+  kubectl -n {{.Release.Namespace}} get secrets mongo-ui-password -o json | jq -r '.data | with_entries(.value |= @base64d)'
+
+- Database Admin UI available at https://{{.Values.adminUI.domain}}
+{{- end}}

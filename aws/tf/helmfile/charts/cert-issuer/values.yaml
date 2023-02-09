@@ -1,0 +1,13 @@
+
+nameOverride: ""
+fullnameOverride: ""
+
+create: true
+type: self-signed
+server: http://acme-server
+email: admin@email.com
+secretKeyRef: secret-key
+solvers:
+  - selector: {}
+    dnsZones: []
+    dns01: {}

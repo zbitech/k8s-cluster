@@ -37,7 +37,7 @@ locals {
 
   oidc_issuer_url = split("//", module.eks.cluster_oidc_issuer_url)[1]
   eks_hash_id = split("/", module.eks.oidc_provider)[2]
-
+#  eks_hash_id = ""
 #  backup_bucket = format("alphega-%s-%s", local.cluster_name, random_string.prefix.result)
 
   tags = {

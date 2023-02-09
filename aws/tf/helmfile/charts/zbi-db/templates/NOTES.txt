@@ -1,0 +1,3 @@
+- Database installed. To get database connection information, run the following command
+
+kubectl -n zbi get secrets mongodb-admin-zbi -o json | jq -r '.data | with_entries(.value |= @base64d)

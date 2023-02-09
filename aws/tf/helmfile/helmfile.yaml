@@ -1,0 +1,201 @@
+---
+environments:
+  default:
+    values:
+      - vars/default.yaml
+      - vars/dev/values.yaml
+      - vars/dev/local.yaml
+  dev:
+    values:
+      - vars/dev/values.yaml
+      - vars/dev/{{requiredEnv "PROVIDER"}}.yaml
+
+  sandbox:
+    values:
+      - vars/dev/values.yaml
+      - vars/dev/{{requiredEnv "PROVIDER"}}.yaml
+
+---
+
+repositories:
+  - name: aws-ebs-csi-driver
+    url: https://kubernetes-sigs.github.io/aws-ebs-csi-driver
+  - name: backube
+    url: https://backube.github.io/helm-charts/
+  - name: bitnami
+    url: https://charts.bitnami.com/bitnami
+  - name: jetstack
+    url: https://charts.jetstack.io
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+  - name: stakater
+    url: https://stakater.github.io/stakater-charts
+  - name: mongodb
+    url: https://mongodb.github.io/helm-charts
+  - name: vmware-tanzu
+    url: https://vmware-tanzu.github.io/helm-charts
+
+releases:
+
+{{- if .Values.helm.velero.enabled}}
+- name: velero
+  chart: vmware-tanzu/velero
+  version: v2.32.1
+  namespace: velero
+{{- end}}
+
+{{- if .Values.helm.stakater.enabled}}
+- name: stakater
+  chart: stakater/reloader
+  version: v0.0.118
+{{- end}}
+
+{{- if .Values.helm.externalDNS.enabled}}
+- name: external-dns
+  chart: bitnami/external-dns
+  namespace: external-dns
+  values:
+{{- with .Values.externalDNS}}
+  - {{ toYaml . | nindent 4}}
+{{- end}}
+{{- end }}
+
+{{ if .Values.helm.certManager.enabled }}
+- name: certs
+  chart: ./charts/certs
+  namespace: zbi
+  values:
+    - issuer:
+        {{toYaml .Values.certs.issuer | nindent 8}}
+    - certificates:
+        {{toYaml .Values.certs.certificates | nindent 8}}
+  hooks:
+    - events: ["prepare"]
+      showlogs: true
+      command: "./scripts/certs/prepare_certs.sh"
+    - events: ["postsync"]
+      showlogs: true
+      command: "./scripts/certs/install_certs.sh"
+  needs:
+    - cert-manager/cert-manager
+{{- if .Values.helm.contour.enabled }}
+    - contour/contour
+{{- end}}
+
+- name: cert-manager
+  chart: jetstack/cert-manager
+  namespace: cert-manager
+  version: v1.9.1
+  values:
+    - installCRDs: {{.Values.certs.installCRDs}}
+    - serviceAccount:
+        annotations:
+          {{ toYaml .Values.certs.serviceAccountAnnotations | nindent 10}}
+{{ end }}
+
+{{- if .Values.helm.contour.enabled }}
+- name: contour
+  chart: bitnami/contour
+  namespace: contour
+  version: 9.1.0
+  values:
+    - envoy: {{ toYaml .Values.contour.envoy | nindent 8}}
+    - configInline: {{ toYaml .Values.contour.configInline | nindent 8}}
+{{- end }}
+
+{{- if .Values.helm.csi.enabled }}
+{{- if eq .Values.csi.provider "hostpath" }}
+- name: "csi-driver"
+  chart: ../../charts/csi-driver
+  hooks:
+    - events: ["prepare"]
+      showlogs: true
+      command: "./scripts/csi-driver/hostpath.sh"
+      args: ["prepare", "{{.Values.csi.snapshotterVersion}}"]
+    - events: ["postsync"]
+      showlogs: true
+      command: "./scripts/csi-driver/hostpath.sh"
+      args: ["postsync"]
+
+{{- else if eq .Values.csi.provider "aws-ebs" }}
+
+- name: "csi-driver"
+  chart: ./charts/csi-driver
+  namespace: kube-system
+  hooks:
+    - events: ["prepare"]
+      showlogs: true
+      command: "./scripts/csi-driver/aws-ebs.sh"
+      args: ["prepare", "{{.Values.csi.snapshotterVersion}}", "{{.Values.csi.ebsRoleName}}", "{{.Values.env.accountID}}", "{{.Values.env.region}}", "{{.Values.env.eksHashID}}", "{{.Values.csi.namespace}}"]
+    - events: ["postsync"]
+      showlogs: true
+      command: "./scripts/csi-driver/aws-ebs.sh"
+      args: ["postsync"]
+
+{{- end }}
+
+- name: snapscheduler
+  chart: backube/snapscheduler
+  namespace: snapscheduler
+{{- end }}
+
+{{- if .Values.helm.mongodb.enabled }}
+- name: database
+  chart: ./charts/database
+  namespace: mongodb
+  needs:
+    - community-operator
+    - contour/contour
+    - zbi/certs
+  hooks:
+    - events: ["postsync"]
+      showlogs: true
+      command: "./scripts/mongo-init-check.sh"
+  values:
+{{- with .Values.database}}
+  - {{ toYaml . | nindent 4}}
+{{- end}}
+
+- name: community-operator
+  chart: mongodb/community-operator
+  namespace: mongodb
+  needs:
+    - contour/contour
+  hooks:
+    - events: ["postsync"]
+      showlogs: true
+      command: "./scripts/mongo-operator-check.sh"
+  values:
+{{- end}}
+
+{{- if .Values.helm.monitoring.enabled }}
+- name: loki
+  chart: grafana/loki-stack
+  namespace: monitoring
+  values:
+    - loki:
+        serviceName: loki
+
+- name: prometheus
+  chart: prometheus-community/prometheus
+  namespace: monitoring
+  hooks:
+    - events: ["postsync"]
+      showlogs: true
+      command: "./scripts/local/patch-prometheus.sh"
+
+# create post script for ingress or use helm chart ingress
+- name: grafana
+  chart: grafana/grafana
+  namespace: monitoring
+  needs:
+    - contour/contour
+  values:
+{{- with .Values.grafana}}
+  - {{ toYaml . | nindent 4}}
+{{- end}}
+
+{{- end}}
+

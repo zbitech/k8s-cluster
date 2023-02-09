@@ -1,0 +1,31 @@
+
+certs:
+  issuer:
+    create: true
+    type: selfsigned
+
+  certificates:
+    - host: apps.zbitech.local
+      name: controller
+      tls:
+        enabled: true
+        secretName: zbi-apps-tls
+    - host: api.zbitech.local
+      name: endpoint
+      tls:
+        enabled: true
+        secretName: zbi-api-tls
+    - host: www.zbitech.local
+      name: dashboard
+      tls:
+        enabled: true
+        secretName: zbi-www-tls
+
+  serviceAccountAnnotations: {}
+
+
+csi:
+  provider: hostpath
+  namespace: kube-system
+  snapshotterVersion: release-5.0
+
