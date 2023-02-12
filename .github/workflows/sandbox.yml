@@ -5,6 +5,19 @@ on:
     branches: [ "main" ]
   pull_request:
 
+env:
+  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  DNS_MANAGER_ROLE: ${{ secrets.DNS_MANAGER_ROLE }}
+  ROUTE53_HOSTED_ZONE: ${{ secrets.ROUTE53_HOSTED_ZONE }}
+  DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+  DB_ADMIN_URL: ${{ vars.DB_ADMIN_URL }}
+  GRAFANA_URL: ${{ vars.GRAFANA_URL }}
+  GRAFANA_AUTH0_CLIENT_ID: ${{ secrets.GRAFANA_AUTH0_CLIENT_ID }}
+  GRAFANA_AUTH0_CLIENT_SECRET: ${{ secrets.GRAFANA_AUTH0_CLIENT_SECRET }}
+  GRAFANA_AUTH0_DOMAIN: ${{ vars.GRAFANA_AUTH0_DOMAIN }}
+  
+
 permissions:
   id-token: write
   contents: read
@@ -56,6 +69,3 @@ jobs:
     - name: Create infrastructure
       if: github.ref == 'refs/heads/"main"' && github.event_name == 'push'
       run: ./aws/deploy.sh --action create --environment sandbox
-
-    - name: Deploy Charts
-      run: echo "Hello World"
