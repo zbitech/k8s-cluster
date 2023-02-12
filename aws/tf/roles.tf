@@ -28,7 +28,7 @@ data "aws_iam_policy_document" "cert-manager-assume-role-policy" {
     }
     condition {
       test     = "StringEquals"
-      values   = ["system:serviceaccount:cert-manager:zbi-cert-manager"]
+      values   = ["system:serviceaccount:cert-manager:cert-manager"]
       variable = "oidc.eks.${var.region}.amazonaws.com/id/${local.eks_hash_id}:sub"
     }
   }
@@ -55,6 +55,8 @@ resource "aws_iam_role" "cert-manager" {
 
   depends_on = [module.eks]
 }
+
+
 
 data "aws_iam_policy_document" "ebs-csi-assume-role-policy" {
   statement {

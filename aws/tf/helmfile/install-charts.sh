@@ -77,4 +77,4 @@ echo ${SCRIPT_PATH}
 # export GRAFANA_URL=monitor-dev.zbitech.io
 
 #helmfile sync --environment "${environment}" -f helmfile-aws.yaml
-helmfile sync -f helmfile-aws.yaml --debug
+helmfile sync -f helmfile-aws.yaml

@@ -15,12 +15,6 @@ variable "environment" {
   default = "sandbox"
 }
 
-#variable "cert_manager_role" {
-#  description = "Existing role for the certificate manager"
-#  type        = string
-#  default     = "cert-manager"
-#}
-
 #**********************
 # VPC settings
 #***********************
@@ -88,6 +82,11 @@ variable "enable_cert_manager" {
   type = bool
   default = true
 }
+
+# variable "extern_dns_role_name" {
+#   description = "External DNS role name"
+#   type        = string
+# }
 
 variable "cert_manager_role_name" {
   description = "Certificate manager role name"

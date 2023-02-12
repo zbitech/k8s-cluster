@@ -29,17 +29,17 @@ releases:
     chart: stakater/reloader
     version: v0.0.118
 
-  - name: external-dns
-    chart: bitnami/external-dns
-    namespace: external-dns
-    values:
-      - provider: "aws"
-      - aws:
-          region: {{requiredEnv "AWS_REGION"}}
-          roleArn: {{requiredEnv "DNS_MANAGER_ROLE"}}
-          assumeRoleArn: {{requiredEnv "CERT_MANAGER_ROLE"}}
-          preferCNAME: true
-          evaluateTargetHealth: true
+  # - name: external-dns
+  #   chart: bitnami/external-dns
+  #   namespace: external-dns
+  #   values:
+  #     - provider: "aws"
+  #     - aws:
+  #         region: {{requiredEnv "AWS_REGION"}}
+  #         roleArn: {{requiredEnv "DNS_MANAGER_ROLE"}}
+  #         assumeRoleArn: {{requiredEnv "CERT_MANAGER_ROLE"}}
+  #         preferCNAME: true
+  #         evaluateTargetHealth: true
 
   - name: certs
     chart: ./charts/certs
@@ -200,12 +200,25 @@ releases:
             mode: console
             level: Debug
           server:
-            domain:
-              root_url: https://{{requiredEnv "GRAFANA_URL"}}
-              serve_from_sub_path: true
+            domain: {{requiredEnv "DOMAIN_NAME"}}
+            root_url: https://{{requiredEnv "GRAFANA_URL"}}
+            serve_from_sub_path: true
+          auth.generic_oauth:
+            enabled: true
+            allow_sign_up: true
+            team_ids: 
+            allowed_organizations: 
+            name: Auth0
+            client_id: {{requiredEnv "GRAFANA_AUTH0_CLIENT_ID"}}
+            client_secret: {{requiredEnv "GRAFANA_AUTH0_CLIENT_SECRET"}}
+            scopes: openid profile email offline_access
+            auth_url: https://{{requiredEnv "GRAFANA_AUTH0_DOMAIN"}}/authorize
+            token_url: https://{{requiredEnv "GRAFANA_AUTH0_DOMAIN"}}/oauth/token
+            api_url: https://{{requiredEnv "GRAFANA_AUTH0_DOMAIN"}}/
+            use_pkce: true
       - persistence:
           enabled: true
-      - adminPassword: "password"
+      - adminPassword: "P@ssw0rd!"
       - ingress:
           enabled: true
           annotations:
@@ -227,12 +240,12 @@ releases:
             - name: prometheus
               type: prometheus
               access: proxy
-              url: http://prometheus-server.monitoring.svc.cluster.local:3100
+              url: http://prometheus-server.monitoring.svc.cluster.local
               isDefault: true
             - name: loki
               type: loki
               access: proxy
-              url: http://loki.monitoring.svc.cluster.local
+              url: http://loki.monitoring.svc.cluster.local:3100
       - defaultDashboardsEnabled: true
       - plugins:
         - grafana-piechart-panel

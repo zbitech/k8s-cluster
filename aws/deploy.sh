@@ -56,6 +56,7 @@ elif [[ ${action} == "verify" ]]; then
 
 elif [[ ${action} == "create" ]]; then
   echo "creating cluster"
+  echo DNS is ${DNS_MANAGER_ROLE}
 
   cd tf
   terraform apply -var-file=${environment}.tfvars -var region=${AWS_REGION} -var environment=${environment} -input=false --auto-approve && \
